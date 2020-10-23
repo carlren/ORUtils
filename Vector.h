@@ -1,9 +1,12 @@
-// Copyright 2014-2015 Isis Innovation Limited and the authors of InfiniTAM
+// Copyright 2014-2017 Oxford University Innovation Limited and the authors of InfiniTAM
 
 #pragma once
 
-#include <math.h>
+#include <cmath>
 #include <ostream>
+
+#include "MathUtils.h"
+#include "PlatformIndependence.h"
 
 namespace ORUtils {
 	//////////////////////////////////////////////////////////////////////////
@@ -45,7 +48,6 @@ namespace ORUtils {
 
 	template<class T, int s> struct VectorX_
 	{
-		int vsize;
 		T v[s];
 	};
 
@@ -61,29 +63,38 @@ namespace ORUtils {
 		////////////////////////////////////////////////////////
 		//  Constructors
 		////////////////////////////////////////////////////////
-		_CPU_AND_GPU_CODE_ Vector2(){} // Default constructor
+		_CPU_AND_GPU_CODE_ Vector2(){}; // Default constructor
 		_CPU_AND_GPU_CODE_ Vector2(const T &t) { this->x = t; this->y = t; } // Scalar constructor
-		_CPU_AND_GPU_CODE_ Vector2(const T *tp) { this->x = tp[0]; this->y = tp[1]; } // Construct from array			            
+		_CPU_AND_GPU_CODE_ Vector2(const T *tp) { this->x = tp[0]; this->y = tp[1]; } // Construct from array
 		_CPU_AND_GPU_CODE_ Vector2(const T v0, const T v1) { this->x = v0; this->y = v1; } // Construct from explicit values
 		_CPU_AND_GPU_CODE_ Vector2(const Vector2_<T> &v) { this->x = v.x; this->y = v.y; }// copy constructor
 
-		_CPU_AND_GPU_CODE_ explicit Vector2(const Vector3_<T> &u)  { this->x = u.x; this->y = u.y; }
-		_CPU_AND_GPU_CODE_ explicit Vector2(const Vector4_<T> &u)  { this->x = u.x; this->y = u.y; }
+		_CPU_AND_GPU_CODE_ Vector2(const Vector3_<T> &u)  { this->x = u.x; this->y = u.y; }
+		_CPU_AND_GPU_CODE_ Vector2(const Vector4_<T> &u)  { this->x = u.x; this->y = u.y; }
 
 		_CPU_AND_GPU_CODE_ inline Vector2<int> toInt() const {
-			return Vector2<int>((int)ROUND(this->x), (int)ROUND(this->y));
+			return {(int)ROUND(this->x), (int)ROUND(this->y)};
 		}
+
+        _CPU_AND_GPU_CODE_ inline Vector2<uint> toUInt() const {
+            return {(uint)ROUND(this->x), (uint)ROUND(this->y)};
+        }
 
 		_CPU_AND_GPU_CODE_ inline Vector2<int> toIntFloor() const {
-			return Vector2<int>((int)floor(this->x), (int)floor(this->y));
+			return {(int)floor(this->x), (int)floor(this->y)};
 		}
 
+        _CPU_AND_GPU_CODE_ inline Vector2<uint> toUIntFloor() const {
+            return {(uint)floor(this->x), (uint)floor(this->y)};
+        }
+
 		_CPU_AND_GPU_CODE_ inline Vector2<unsigned char> toUChar() const {
-			Vector2<int> vi = toInt(); return Vector2<unsigned char>((unsigned char)CLAMP(vi.x, 0, 255), (unsigned char)CLAMP(vi.y, 0, 255));
+			Vector2<int> vi = toInt();
+			return {(unsigned char)CLAMP(vi.x, 0, 255), (unsigned char)CLAMP(vi.y, 0, 255)};
 		}
 
 		_CPU_AND_GPU_CODE_ inline Vector2<float> toFloat() const {
-			return Vector2<float>((float)this->x, (float)this->y);
+			return {(float)this->x, (float)this->y};
 		}
 
 		_CPU_AND_GPU_CODE_ const T *getValues() const { return this->v; }
@@ -95,25 +106,30 @@ namespace ORUtils {
 
 		// type-cast operators
 		_CPU_AND_GPU_CODE_ operator T *() { return this->v; }
-		_CPU_AND_GPU_CODE_ operator const T *() const { return this->v; }
+		_CPU_AND_GPU_CODE_ explicit operator const T *() const { return this->v; }
 
 		////////////////////////////////////////////////////////
 		//  Math operators
 		////////////////////////////////////////////////////////
 
 		// scalar multiply assign
-		_CPU_AND_GPU_CODE_ friend Vector2<T> &operator *= (const Vector2<T> &lhs, T d) {
-			lhs.x *= d; lhs.y *= d; return lhs;
+		_CPU_AND_GPU_CODE_ friend Vector2<T> &operator *= (Vector2<T> &lhs, T d) {
+			lhs.x *= d; lhs.y *= d; 
+			return lhs;
 		}
 
 		// component-wise vector multiply assign
 		_CPU_AND_GPU_CODE_ friend Vector2<T> &operator *= (Vector2<T> &lhs, const Vector2<T> &rhs) {
-			lhs.x *= rhs.x; lhs.y *= rhs.y; return lhs;
+			lhs.x *= rhs.x; lhs.y *= rhs.y; 
+			return lhs;
 		}
 
 		// scalar divide assign
 		_CPU_AND_GPU_CODE_ friend Vector2<T> &operator /= (Vector2<T> &lhs, T d) {
-			if (d == 0) return lhs; lhs.x /= d; lhs.y /= d; return lhs;
+			if (d == 0) return lhs;
+			lhs.x /= d;
+			lhs.y /= d;
+			return lhs;
 		}
 
 		// component-wise vector divide assign
@@ -185,6 +201,15 @@ namespace ORUtils {
 			return (lhs.x != rhs.x) || (lhs.y != rhs.y);
 		}
 
+        _CPU_AND_GPU_CODE_ friend bool operator< (const Vector2<T> &lhs, const Vector2<T> &rhs) {
+            if(lhs.x<rhs.x){
+                return true;
+            } else if (lhs.x == rhs.x && lhs.y < rhs.y) {
+                return true;
+            }
+            return false;
+        }
+
 		friend std::ostream& operator<<(std::ostream& os, const Vector2<T>& dt){
 			os << dt.x << ", " << dt.y;
 			return os;
@@ -201,11 +226,11 @@ namespace ORUtils {
 		//  Constructors
 		////////////////////////////////////////////////////////
 		_CPU_AND_GPU_CODE_ Vector3(){} // Default constructor
-		_CPU_AND_GPU_CODE_ Vector3(const T &t)	{ this->x = t; this->y = t; this->z = t; } // Scalar constructor
-		_CPU_AND_GPU_CODE_ Vector3(const T *tp) { this->x = tp[0]; this->y = tp[1]; this->z = tp[2]; } // Construct from array
+		_CPU_AND_GPU_CODE_ explicit Vector3(const T &t)	{ this->x = t; this->y = t; this->z = t; } // Scalar constructor
+		_CPU_AND_GPU_CODE_ explicit Vector3(const T *tp) { this->x = tp[0]; this->y = tp[1]; this->z = tp[2]; } // Construct from array
 		_CPU_AND_GPU_CODE_ Vector3(const T v0, const T v1, const T v2) { this->x = v0; this->y = v1; this->z = v2; } // Construct from explicit values
 		_CPU_AND_GPU_CODE_ explicit Vector3(const Vector4_<T> &u)	{ this->x = u.x; this->y = u.y; this->z = u.z; }
-		_CPU_AND_GPU_CODE_ explicit Vector3(const Vector2_<T> &u, T v0) { this->x = u.x; this->y = u.y; this->z = v0; }
+		_CPU_AND_GPU_CODE_ explicit Vector3(const Vector2_<T> &u, T v0 = T(0)) { this->x = u.x; this->y = u.y; this->z = v0; }
 
 		_CPU_AND_GPU_CODE_ inline Vector3<int> toIntRound() const {
 			return Vector3<int>((int)ROUND(this->x), (int)ROUND(this->y), (int)ROUND(this->z));
@@ -269,32 +294,38 @@ namespace ORUtils {
 
 		// scalar multiply assign
 		_CPU_AND_GPU_CODE_ friend Vector3<T> &operator *= (Vector3<T> &lhs, T d)	{
-			lhs.x *= d; lhs.y *= d; lhs.z *= d; return lhs;
+			lhs.x *= d; lhs.y *= d; lhs.z *= d; 
+			return lhs;
 		}
 
 		// component-wise vector multiply assign
 		_CPU_AND_GPU_CODE_ friend Vector3<T> &operator *= (Vector3<T> &lhs, const Vector3<T> &rhs) {
-			lhs.x *= rhs.x; lhs.y *= rhs.y; lhs.z *= rhs.z; return lhs;
+			lhs.x *= rhs.x; lhs.y *= rhs.y; lhs.z *= rhs.z; 
+			return lhs;
 		}
 
 		// scalar divide assign
 		_CPU_AND_GPU_CODE_ friend Vector3<T> &operator /= (Vector3<T> &lhs, T d) {
-			lhs.x /= d; lhs.y /= d; lhs.z /= d; return lhs;
+			lhs.x /= d; lhs.y /= d; lhs.z /= d; 
+			return lhs;
 		}
 
 		// component-wise vector divide assign
 		_CPU_AND_GPU_CODE_ friend Vector3<T> &operator /= (Vector3<T> &lhs, const Vector3<T> &rhs)	{
-			lhs.x /= rhs.x; lhs.y /= rhs.y; lhs.z /= rhs.z; return lhs;
+			lhs.x /= rhs.x; lhs.y /= rhs.y; lhs.z /= rhs.z; 
+			return lhs;
 		}
 
 		// component-wise vector add assign
 		_CPU_AND_GPU_CODE_ friend Vector3<T> &operator += (Vector3<T> &lhs, const Vector3<T> &rhs)	{
-			lhs.x += rhs.x; lhs.y += rhs.y; lhs.z += rhs.z; return lhs;
+			lhs.x += rhs.x; lhs.y += rhs.y; lhs.z += rhs.z; 
+			return lhs;
 		}
 
 		// component-wise vector subtract assign
 		_CPU_AND_GPU_CODE_ friend Vector3<T> &operator -= (Vector3<T> &lhs, const Vector3<T> &rhs) {
-			lhs.x -= rhs.x; lhs.y -= rhs.y; lhs.z -= rhs.z; return lhs;
+			lhs.x -= rhs.x; lhs.y -= rhs.y; lhs.z -= rhs.z; 
+			return lhs;
 		}
 
 		// unary negate
@@ -346,18 +377,20 @@ namespace ORUtils {
 			return (lhs.x != rhs.x) || (lhs.y != rhs.y) || (lhs.z != rhs.z);
 		}
 
+        _CPU_AND_GPU_CODE_ friend bool operator< (const Vector3<T> &lhs, const Vector3<T> &rhs) {
+            if(lhs.x<rhs.x){
+                return true;
+            } else if (lhs.x == rhs.x && lhs.y < rhs.y) {
+                return true;
+            } else if (lhs.x == rhs.x && lhs.y == rhs.y && lhs.z < rhs.z) {
+                return true;
+            }
+            return false;
+        }
+
 		////////////////////////////////////////////////////////////////////////////////
 		// dimension specific operations
 		////////////////////////////////////////////////////////////////////////////////
-
-		// cross product
-		_CPU_AND_GPU_CODE_ friend Vector3<T> cross(const Vector3<T> &lhs, const Vector3<T> &rhs) {
-			Vector3<T> r;
-			r.x = lhs.y * rhs.z - lhs.z * rhs.y;
-			r.y = lhs.z * rhs.x - lhs.x * rhs.z;
-			r.z = lhs.x * rhs.y - lhs.y * rhs.x;
-			return r;
-		}
 
 		friend std::ostream& operator<<(std::ostream& os, const Vector3<T>& dt){
 			os << dt.x << ", " << dt.y << ", " << dt.z;
@@ -374,6 +407,19 @@ namespace ORUtils {
 		return (lhs.x == rhs.x) && (lhs.y == rhs.y) && (lhs.z == rhs.z);
 	}
 
+	////////////////////////////////////////////////////////
+	//  Non-member functions
+	////////////////////////////////////////////////////////
+
+	// cross product
+	template <typename T> _CPU_AND_GPU_CODE_ Vector3<T> cross(const Vector3<T> &lhs, const Vector3<T> &rhs) {
+		Vector3<T> r;
+		r.x = lhs.y * rhs.z - lhs.z * rhs.y;
+		r.y = lhs.z * rhs.x - lhs.x * rhs.z;
+		r.z = lhs.x * rhs.y - lhs.y * rhs.x;
+		return r;
+	}
+
 	template <class T> class Vector4 : public Vector4_ < T >
 	{
 	public:
@@ -385,11 +431,11 @@ namespace ORUtils {
 		////////////////////////////////////////////////////////
 
 		_CPU_AND_GPU_CODE_ Vector4() {} // Default constructor
-		_CPU_AND_GPU_CODE_ Vector4(const T &t) { this->x = t; this->y = t; this->z = t; this->w = t; } //Scalar constructor
-		_CPU_AND_GPU_CODE_ Vector4(const T *tp) { this->x = tp[0]; this->y = tp[1]; this->z = tp[2]; this->w = tp[3]; } // Construct from array
+		_CPU_AND_GPU_CODE_ explicit Vector4(const T &t) { this->x = t; this->y = t; this->z = t; this->w = t; } //Scalar constructor
+		_CPU_AND_GPU_CODE_ explicit Vector4(const T *tp) { this->x = tp[0]; this->y = tp[1]; this->z = tp[2]; this->w = tp[3]; } // Construct from array
 		_CPU_AND_GPU_CODE_ Vector4(const T v0, const T v1, const T v2, const T v3) { this->x = v0; this->y = v1; this->z = v2; this->w = v3; } // Construct from explicit values
-		_CPU_AND_GPU_CODE_ explicit Vector4(const Vector3_<T> &u, T v0) { this->x = u.x; this->y = u.y; this->z = u.z; this->w = v0; }
-		_CPU_AND_GPU_CODE_ explicit Vector4(const Vector2_<T> &u, T v0, T v1) { this->x = u.x; this->y = u.y; this->z = v0; this->w = v1; }
+		_CPU_AND_GPU_CODE_ explicit Vector4(const Vector3_<T> &u, T v0 = T(0)) { this->x = u.x; this->y = u.y; this->z = u.z; this->w = v0; }
+		_CPU_AND_GPU_CODE_ explicit Vector4(const Vector2_<T> &u, T v0 = T(0), T v1 = T(0)) { this->x = u.x; this->y = u.y; this->z = v0; this->w = v1; }
 
 		_CPU_AND_GPU_CODE_ inline Vector4<int> toIntRound() const {
 			return Vector4<int>((int)ROUND(this->x), (int)ROUND(this->y), (int)ROUND(this->z), (int)ROUND(this->w));
@@ -428,32 +474,38 @@ namespace ORUtils {
 
 		// scalar multiply assign
 		_CPU_AND_GPU_CODE_ friend Vector4<T> &operator *= (Vector4<T> &lhs, T d) {
-			lhs.x *= d; lhs.y *= d; lhs.z *= d; lhs.w *= d; return lhs;
+			lhs.x *= d; lhs.y *= d; lhs.z *= d; lhs.w *= d; 
+			return lhs;
 		}
 
 		// component-wise vector multiply assign
 		_CPU_AND_GPU_CODE_ friend Vector4<T> &operator *= (Vector4<T> &lhs, const Vector4<T> &rhs) {
-			lhs.x *= rhs.x; lhs.y *= rhs.y; lhs.z *= rhs.z; lhs.w *= rhs.w; return lhs;
+			lhs.x *= rhs.x; lhs.y *= rhs.y; lhs.z *= rhs.z; lhs.w *= rhs.w; 
+			return lhs;
 		}
 
 		// scalar divide assign
 		_CPU_AND_GPU_CODE_ friend Vector4<T> &operator /= (Vector4<T> &lhs, T d){
-			lhs.x /= d; lhs.y /= d; lhs.z /= d; lhs.w /= d; return lhs;
+			lhs.x /= d; lhs.y /= d; lhs.z /= d; lhs.w /= d; 
+			return lhs;
 		}
 
 		// component-wise vector divide assign
 		_CPU_AND_GPU_CODE_ friend Vector4<T> &operator /= (Vector4<T> &lhs, const Vector4<T> &rhs) {
-			lhs.x /= rhs.x; lhs.y /= rhs.y; lhs.z /= rhs.z; lhs.w /= rhs.w; return lhs;
+			lhs.x /= rhs.x; lhs.y /= rhs.y; lhs.z /= rhs.z; lhs.w /= rhs.w; 
+			return lhs;
 		}
 
 		// component-wise vector add assign
 		_CPU_AND_GPU_CODE_ friend Vector4<T> &operator += (Vector4<T> &lhs, const Vector4<T> &rhs)	{
-			lhs.x += rhs.x; lhs.y += rhs.y; lhs.z += rhs.z; lhs.w += rhs.w; return lhs;
+			lhs.x += rhs.x; lhs.y += rhs.y; lhs.z += rhs.z; lhs.w += rhs.w; 
+			return lhs;
 		}
 
 		// component-wise vector subtract assign
 		_CPU_AND_GPU_CODE_ friend Vector4<T> &operator -= (Vector4<T> &lhs, const Vector4<T> &rhs)	{
-			lhs.x -= rhs.x; lhs.y -= rhs.y; lhs.z -= rhs.z; lhs.w -= rhs.w; return lhs;
+			lhs.x -= rhs.x; lhs.y -= rhs.y; lhs.z -= rhs.z; lhs.w -= rhs.w; 
+			return lhs;
 		}
 
 		// unary negate
@@ -510,11 +562,28 @@ namespace ORUtils {
 			return (lhs.x != rhs.x) || (lhs.y != rhs.y) || (lhs.z != rhs.z) || (lhs.w != rhs.w);
 		}
 
+		_CPU_AND_GPU_CODE_ friend bool operator< (const Vector4<T> &lhs, const Vector4<T> &rhs) {
+		    if(lhs.x<rhs.x) return true;
+		    else if (lhs.x == rhs.x && lhs.y < rhs.y) return true;
+		    else if (lhs.x == rhs.x && lhs.y == rhs.y && lhs.z < rhs.z) return true;
+		    else if (lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z && lhs.w < rhs.w) return true;
+		    return false;
+		}
+
 		friend std::ostream& operator<<(std::ostream& os, const Vector4<T>& dt){
 			os << dt.x << ", " << dt.y << ", " << dt.z << ", " << dt.w;
 			return os;
 		}
 	};
+
+    // cross product
+    template <typename T> _CPU_AND_GPU_CODE_ Vector4<T> cross(const Vector4<T> &lhs, const Vector4<T> &rhs) {
+        Vector4<T> r;
+        r.x = lhs.y * rhs.z - lhs.z * rhs.y;
+        r.y = lhs.z * rhs.x - lhs.x * rhs.z;
+        r.z = lhs.x * rhs.y - lhs.y * rhs.x;
+        return r;
+    }
 
 	template <class T> class Vector6 : public Vector6_ < T >
 	{
@@ -527,8 +596,8 @@ namespace ORUtils {
 		////////////////////////////////////////////////////////
 
 		_CPU_AND_GPU_CODE_ Vector6() {} // Default constructor
-		_CPU_AND_GPU_CODE_ Vector6(const T &t) { this->v[0] = t; this->v[1] = t; this->v[2] = t; this->v[3] = t; this->v[4] = t; this->v[5] = t; } //Scalar constructor
-		_CPU_AND_GPU_CODE_ Vector6(const T *tp) { this->v[0] = tp[0]; this->v[1] = tp[1]; this->v[2] = tp[2]; this->v[3] = tp[3]; this->v[4] = tp[4]; this->v[5] = tp[5]; } // Construct from array
+		_CPU_AND_GPU_CODE_ explicit Vector6(const T &t) { this->v[0] = t; this->v[1] = t; this->v[2] = t; this->v[3] = t; this->v[4] = t; this->v[5] = t; } //Scalar constructor
+		_CPU_AND_GPU_CODE_ explicit Vector6(const T *tp) { this->v[0] = tp[0]; this->v[1] = tp[1]; this->v[2] = tp[2]; this->v[3] = tp[3]; this->v[4] = tp[4]; this->v[5] = tp[5]; } // Construct from array
 		_CPU_AND_GPU_CODE_ Vector6(const T v0, const T v1, const T v2, const T v3, const T v4, const T v5) { this->v[0] = v0; this->v[1] = v1; this->v[2] = v2; this->v[3] = v3; this->v[4] = v4; this->v[5] = v5; } // Construct from explicit values
 		_CPU_AND_GPU_CODE_ explicit Vector6(const Vector4_<T> &u, T v0, T v1) { this->v[0] = u.x; this->v[1] = u.y; this->v[2] = u.z; this->v[3] = u.w; this->v[4] = v0; this->v[5] = v1; }
 		_CPU_AND_GPU_CODE_ explicit Vector6(const Vector3_<T> &u, T v0, T v1, T v2) { this->v[0] = u.x; this->v[1] = u.y; this->v[2] = u.z; this->v[3] = v0; this->v[4] = v1; this->v[5] = v2; }
@@ -563,27 +632,32 @@ namespace ORUtils {
 
 		// scalar multiply assign
 		_CPU_AND_GPU_CODE_ friend Vector6<T> &operator *= (Vector6<T> &lhs, T d) {
-			lhs[0] *= d; lhs[1] *= d; lhs[2] *= d; lhs[3] *= d; lhs[4] *= d; lhs[5] *= d; return lhs;
+			lhs[0] *= d; lhs[1] *= d; lhs[2] *= d; lhs[3] *= d; lhs[4] *= d; lhs[5] *= d; 
+			return lhs;
 		}
 
 		// component-wise vector multiply assign
 		_CPU_AND_GPU_CODE_ friend Vector6<T> &operator *= (Vector6<T> &lhs, const Vector6<T> &rhs) {
-			lhs[0] *= rhs[0]; lhs[1] *= rhs[1]; lhs[2] *= rhs[2]; lhs[3] *= rhs[3]; lhs[4] *= rhs[4]; lhs[5] *= rhs[5]; return lhs;
+			lhs[0] *= rhs[0]; lhs[1] *= rhs[1]; lhs[2] *= rhs[2]; lhs[3] *= rhs[3]; lhs[4] *= rhs[4]; lhs[5] *= rhs[5]; 
+			return lhs;
 		}
 
 		// scalar divide assign
 		_CPU_AND_GPU_CODE_ friend Vector6<T> &operator /= (Vector6<T> &lhs, T d){
-			lhs[0] /= d; lhs[1] /= d; lhs[2] /= d; lhs[3] /= d; lhs[4] /= d; lhs[5] /= d; return lhs;
+			lhs[0] /= d; lhs[1] /= d; lhs[2] /= d; lhs[3] /= d; lhs[4] /= d; lhs[5] /= d; 
+			return lhs;
 		}
 
 		// component-wise vector divide assign
 		_CPU_AND_GPU_CODE_ friend Vector6<T> &operator /= (Vector6<T> &lhs, const Vector6<T> &rhs) {
-			lhs[0] /= rhs[0]; lhs[1] /= rhs[1]; lhs[2] /= rhs[2]; lhs[3] /= rhs[3]; lhs[4] /= rhs[4]; lhs[5] /= rhs[5]; return lhs;
+			lhs[0] /= rhs[0]; lhs[1] /= rhs[1]; lhs[2] /= rhs[2]; lhs[3] /= rhs[3]; lhs[4] /= rhs[4]; lhs[5] /= rhs[5]; 
+			return lhs;
 		}
 
 		// component-wise vector add assign
 		_CPU_AND_GPU_CODE_ friend Vector6<T> &operator += (Vector6<T> &lhs, const Vector6<T> &rhs)	{
-			lhs[0] += rhs[0]; lhs[1] += rhs[1]; lhs[2] += rhs[2]; lhs[3] += rhs[3]; lhs[4] += rhs[4]; lhs[5] += rhs[5]; return lhs;
+			lhs[0] += rhs[0]; lhs[1] += rhs[1]; lhs[2] += rhs[2]; lhs[3] += rhs[3]; lhs[4] += rhs[4]; lhs[5] += rhs[5]; 
+			return lhs;
 		}
 
 		// component-wise vector subtract assign
@@ -645,6 +719,16 @@ namespace ORUtils {
 			return (lhs[0] != rhs[0]) || (lhs[1] != rhs[1]) || (lhs[2] != rhs[2]) || (lhs[3] != rhs[3]) || (lhs[4] != rhs[4]) || (lhs[5] != rhs[5]);
 		}
 
+        _CPU_AND_GPU_CODE_ friend bool operator< (const Vector6<T> &lhs, const Vector6<T> &rhs) {
+            if(lhs.x<rhs.x) return true;
+            else if (lhs[0] == rhs[0] && lhs[1] < rhs[1]) return true;
+            else if (lhs[0] == rhs[0] && lhs[1] == rhs[1] && lhs[2] < rhs[2]) return true;
+            else if (lhs[0] == rhs[0] && lhs[1] == rhs[1] && lhs[2] == rhs[2] && lhs[3] < rhs[3]) return true;
+            else if (lhs[0] == rhs[0] && lhs[1] == rhs[1] && lhs[2] == rhs[2] && lhs[3] < rhs[3] && lhs[4] < rhs[4]) return true;
+            else if (lhs[0] == rhs[0] && lhs[1] == rhs[1] && lhs[2] == rhs[2] && lhs[3] < rhs[3] && lhs[4] < rhs[4] && lhs[5] < rhs[5]) return true;
+            return false;
+        }
+
 		friend std::ostream& operator<<(std::ostream& os, const Vector6<T>& dt){
 			os << dt[0] << ", " << dt[1] << ", " << dt[2] << ", " << dt[3] << ", " << dt[4] << ", " << dt[5];
 			return os;
@@ -656,15 +740,16 @@ namespace ORUtils {
 	{
 	public:
 		typedef T value_type;
-		_CPU_AND_GPU_CODE_ inline int size() const { return this->vsize; }
+		enum { value_size = s };
+		_CPU_AND_GPU_CODE_ inline int size() const { return value_size; }
 
 		////////////////////////////////////////////////////////
 		//  Constructors
 		////////////////////////////////////////////////////////
 
-		_CPU_AND_GPU_CODE_ VectorX() { this->vsize = s; } // Default constructor
-		_CPU_AND_GPU_CODE_ VectorX(const T &t) { for (int i = 0; i < s; i++) this->v[i] = t; } //Scalar constructor
-		_CPU_AND_GPU_CODE_ VectorX(const T *tp) { for (int i = 0; i < s; i++) this->v[i] = tp[i]; } // Construct from array
+		_CPU_AND_GPU_CODE_ VectorX() { } // Default constructor
+		_CPU_AND_GPU_CODE_ explicit VectorX(const T &t) { for (int i = 0; i < s; i++) this->v[i] = t; } //Scalar constructor
+		_CPU_AND_GPU_CODE_ explicit VectorX(const T *tp) { for (int i = 0; i < s; i++) this->v[i] = tp[i]; } // Construct from array
 
 		// indexing operators
 		_CPU_AND_GPU_CODE_ T &operator [](int i) { return this->v[i]; }
@@ -708,32 +793,38 @@ namespace ORUtils {
 
 		// scalar multiply assign
 		_CPU_AND_GPU_CODE_ friend VectorX<T, s> &operator *= (VectorX<T, s> &lhs, T d) {
-			for (int i = 0; i < s; i++) lhs[i] *= d; return lhs;
+			for (int i = 0; i < s; i++) lhs[i] *= d; 
+			return lhs;
 		}
 
 		// component-wise vector multiply assign
 		_CPU_AND_GPU_CODE_ friend VectorX<T, s> &operator *= (VectorX<T, s> &lhs, const VectorX<T, s> &rhs) {
-			for (int i = 0; i < s; i++) lhs[i] *= rhs[i]; return lhs;
+			for (int i = 0; i < s; i++) lhs[i] *= rhs[i]; 
+			return lhs;
 		}
 
 		// scalar divide assign
 		_CPU_AND_GPU_CODE_ friend VectorX<T, s> &operator /= (VectorX<T, s> &lhs, T d){
-			for (int i = 0; i < s; i++) lhs[i] /= d; return lhs;
+			for (int i = 0; i < s; i++) lhs[i] /= d; 
+			return lhs;
 		}
 
 		// component-wise vector divide assign
 		_CPU_AND_GPU_CODE_ friend VectorX<T, s> &operator /= (VectorX<T, s> &lhs, const VectorX<T, s> &rhs) {
-			for (int i = 0; i < s; i++) lhs[i] /= rhs[i]; return lhs;
+			for (int i = 0; i < s; i++) lhs[i] /= rhs[i]; 
+			return lhs;
 		}
 
 		// component-wise vector add assign
 		_CPU_AND_GPU_CODE_ friend VectorX<T, s> &operator += (VectorX<T, s> &lhs, const VectorX<T, s> &rhs)	{
-			for (int i = 0; i < s; i++) lhs[i] += rhs[i]; return lhs;
+			for (int i = 0; i < s; i++) lhs[i] += rhs[i]; 
+			return lhs;
 		}
 
 		// component-wise vector subtract assign
 		_CPU_AND_GPU_CODE_ friend VectorX<T, s> &operator -= (VectorX<T, s> &lhs, const VectorX<T, s> &rhs)	{
-			for (int i = 0; i < s; i++) lhs[i] -= rhs[i]; return lhs;
+			for (int i = 0; i < s; i++) lhs[i] -= rhs[i]; 
+			return lhs;
 		}
 
 		// unary negate
@@ -812,6 +903,14 @@ namespace ORUtils {
 		return r;
 	}
 
+	// abs
+	template<class T> _CPU_AND_GPU_CODE_ inline T abs(const T &lhs) {
+		T tmp;
+		for (int i = 0; i < lhs.size(); i++)
+			tmp[i] = lhs[i];
+		return tmp;
+	}
+
 	// return the length of the provided vector
 	template< class T> _CPU_AND_GPU_CODE_ inline typename T::value_type length(const T &vec) {
 		return sqrt(dot(vec, vec));
@@ -847,4 +946,5 @@ namespace ORUtils {
 			rv[i] = max(lhs[i], rhs[i]);
 		return rv;
 	}
-};
+}
+

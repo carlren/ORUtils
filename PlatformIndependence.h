@@ -1,14 +1,22 @@
-// Copyright 2014-2015 Isis Innovation Limited and the authors of InfiniTAM
+// Copyright 2014-2017 Oxford University Innovation Limited and the authors of InfiniTAM
 
 #pragma once
 
+#if !defined(__METALC__)
 #include <cstdio>
 #include <stdexcept>
+#endif
 
 #if defined(__CUDACC__) && defined(__CUDA_ARCH__)
 #define _CPU_AND_GPU_CODE_ __device__	// for CUDA device code
 #else
 #define _CPU_AND_GPU_CODE_ 
+#endif
+
+#if defined(__CUDACC__)
+#define _CPU_AND_GPU_CODE_TEMPLATE_ __device__ // for CUDA device code
+#else
+#define _CPU_AND_GPU_CODE_TEMPLATE_
 #endif
 
 #if defined(__CUDACC__) && defined(__CUDA_ARCH__)

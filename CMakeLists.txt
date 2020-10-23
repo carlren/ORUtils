@@ -1,53 +1,48 @@
+##############################
+# CMakeLists.txt for ORUtils #
+##############################
+
+###########################
+# Specify the target name #
+###########################
+
+SET(targetname ORUtils)
+
+################################
+# Specify the libraries to use #
+################################
+
+INCLUDE(${PROJECT_SOURCE_DIR}/cmake/UseCUDA.cmake)
+INCLUDE(${PROJECT_SOURCE_DIR}/cmake/UseOpenMP.cmake)
+INCLUDE(${PROJECT_SOURCE_DIR}/cmake/UsePNG.cmake)
+
 #############################
 # Specify the project files #
 #############################
+file(GLOB_RECURSE srcs *.cpp)
+file(GLOB_RECURSE header *.hpp *.h)
+file(GLOB_RECURSE cuda *.cu)
 
-##
-SET(ORUTILS_HEADERS
-Vector.h
-Matrix.h
-Cholesky.h
-MathUtils.h
-Image.h
-CUDADefines.h
-LexicalCast.h
-MemoryBlock.h
-MemoryBlockPersister.h
-PlatformIndependence.h
+
+SET(sources
+${srcs} ${cuda}
 )
-
-#################################################################
-# Collect the project files into common, CPU-only and CUDA-only #
-#################################################################
-
-set(ORUTILS_OBJECTS
-Dummy.cpp
-${ORUTILS_HEADERS}
+SET(headers
+${header}
 )
 
 #############################
-# Specify the source groups #
+# Specify the source groups #in
 #############################
 
-SOURCE_GROUP("" FILES ${ORUTILS_HEADERS})
+SOURCE_GROUP("" FILES ${sources} ${headers})
 
-##############################################################
-# Specify the include directories, target and link libraries #
-##############################################################
+##########################################
+# Specify the target and where to put it #
+##########################################
 
-add_library(ORUtils ${ORUTILS_OBJECTS})
+INCLUDE(${PROJECT_SOURCE_DIR}/cmake/SetCUDALibTarget.cmake)
 
-IF(WITH_CUDA)
-#  include_directories(${CUDA_INCLUDE_DIRS})
-#  cuda_add_library(ITMLib
-#	${ITMLIB_CPU_OBJECTS}
-#	${ITMLIB_CUDA_OBJECTS}
-#	${ITMLIB_COMMON_OBJECTS}
-#	OPTIONS -gencode arch=compute_11,code=compute_11 -gencode arch=compute_30,code=compute_30)
-#  target_link_libraries(ITMLib ${CUDA_LIBRARY})
-ELSE()
-#  add_definitions(-DCOMPILE_WITHOUT_CUDA)
-#  add_library(ITMLib ${ITMLIB_CPU_OBJECTS} ${ITMLIB_COMMON_OBJECTS})
-ENDIF()
-
-#target_link_libraries(ITMLib Utils)
+set_target_properties(${targetname} PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(${targetname} PROPERTIES CXX_STANDARD 11)
+#target_include_directories(${targetname} PUBLIC ./include PUBLIC .)

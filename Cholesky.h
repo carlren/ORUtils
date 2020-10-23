@@ -1,4 +1,4 @@
-// Copyright 2014-2015 Isis Innovation Limited and the authors of InfiniTAM
+// Copyright 2014-2017 Oxford University Innovation Limited and the authors of InfiniTAM
 
 #pragma once
 
@@ -6,14 +6,15 @@
 
 namespace ORUtils
 {
-	class Cholesky
+	template<class F>
+	class GenericCholesky
 	{
 	private:
-		std::vector<float> cholesky;
+		std::vector<F> cholesky;
 		int size, rank;
 
 	public:
-		Cholesky(const float *mat, int size)
+		GenericCholesky(const F *mat, int size)
 		{
 			this->size = size;
 			this->cholesky.resize(size*size);
@@ -22,17 +23,17 @@ namespace ORUtils
 
 			for (int c = 0; c < size; c++)
 			{
-				float inv_diag = 1;
+				F inv_diag = 1;
 				for (int r = c; r < size; r++)
 				{
-					float val = cholesky[c + r * size];
+					F val = cholesky[c + r * size];
 					for (int c2 = 0; c2 < c; c2++) 
 						val -= cholesky[c + c2 * size] * cholesky[c2 + r * size];
 
 					if (r == c)
 					{
 						cholesky[c + r * size] = val;
-						if (val == 0) { rank = r; }
+						if (val == 0) { rank = r; continue;} //FIXME: if val == 0: inv_diag turns to inf, so does choleskey[c+r*size]
 						inv_diag = 1.0f / val;
 					}
 					else
@@ -44,14 +45,28 @@ namespace ORUtils
 			}
 
 			rank = size;
+
+			//DEBUG:
+            for (int i = 0; i < size * size; i++) if(std::isnan(cholesky[i])){
+                printf("%s %s isnan\n",__FILE__,__FUNCTION__);
+            };
 		}
 
-		void Backsub(float *result, const float *v) const
+		F Determinant(void) const
 		{
-			std::vector<float> y(size);
+			F ret = 1.0f;
+			for (int i = 0; i < size; ++i) {
+				ret *= cholesky[i + i * size];
+			}
+			return ret * ret;
+		}
+
+		void Backsub(F *result, const F *v) const
+		{
+			std::vector<F> y(size);
 			for (int i = 0; i < size; i++)
 			{
-				float val = v[i];
+				F val = v[i];
 				for (int j = 0; j < i; j++) val -= cholesky[j + i * size] * y[j];
 				y[i] = val;
 			}
@@ -60,14 +75,16 @@ namespace ORUtils
 
 			for (int i = size - 1; i >= 0; i--)
 			{
-				float val = y[i];
+				F val = y[i];
 				for (int j = i + 1; j < size; j++) val -= cholesky[i + j * size] * result[j];
 				result[i] = val;
 			}
 		}
 
-		~Cholesky(void)
+		~GenericCholesky(void)
 		{
 		}
 	};
+
+	typedef GenericCholesky<float> Cholesky;
 }

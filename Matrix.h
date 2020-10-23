@@ -1,8 +1,11 @@
-// Copyright 2014-2015 Isis Innovation Limited and the authors of InfiniTAM
+// Copyright 2014-2017 Oxford University Innovation Limited and the authors of InfiniTAM
 #pragma once
 
 #include <string.h>
 #include <ostream>
+
+#include "PlatformIndependence.h"
+#include "Vector.h"
 
 /************************************************************************/
 /* WARNING: the following 3x3 and 4x4 matrix are using column major, to	*/
@@ -85,21 +88,33 @@ namespace ORUtils {
 		_CPU_AND_GPU_CODE_ inline void setIdentity() { setZeros(); this->m00 = this->m11 = this->m22 = this->m33 = 1; }
 		_CPU_AND_GPU_CODE_ inline void setScale(T s) { this->m00 = this->m11 = this->m22 = s; }
 		_CPU_AND_GPU_CODE_ inline void setScale(const Vector3_<T> &s) { this->m00 = s[0]; this->m11 = s[1]; this->m22 = s[2]; }
-		_CPU_AND_GPU_CODE_ inline void setTranslate(const Vector3_<T> &t) { for (int y = 0; y < 3; y++) at(3, y) = t[y]; }
-		_CPU_AND_GPU_CODE_ inline void setRow(int r, const Vector4_<T> &t){ for (int x = 0; x < 4; x++) at(x, r) = t[x]; }
+		_CPU_AND_GPU_CODE_ inline void setTranslate(const Vector3_<T> &t) { for (int y = 0; y < 3; y++) at(3, y) = t.v[y]; }
+		_CPU_AND_GPU_CODE_ inline void setRow(int r, const Vector4_<T> &t){ for (int x = 0; x < 4; x++) at(x, r) = t.v[x]; }
 		_CPU_AND_GPU_CODE_ inline void setColumn(int c, const Vector4_<T> &t) { memcpy(this->m + 4 * c, t.v, sizeof(T) * 4); }
 
 		// get values
 		_CPU_AND_GPU_CODE_ inline Vector4<T> getRow(int r) const { Vector4<T> v; for (int x = 0; x < 4; x++) v[x] = at(x, r); return v; }
 		_CPU_AND_GPU_CODE_ inline Vector4<T> getColumn(int c) const { Vector4<T> v; memcpy(v.v, this->m + 4 * c, sizeof(T) * 4); return v; }
-		_CPU_AND_GPU_CODE_ inline Matrix4 t() { // transpose
+		_CPU_AND_GPU_CODE_ inline Matrix4 t() const { // transpose
 			Matrix4 mtrans;
 			for (int x = 0; x < 4; x++)	for (int y = 0; y < 4; y++)
 				mtrans(x, y) = at(y, x);
 			return mtrans;
 		}
 
-		_CPU_AND_GPU_CODE_ inline friend Matrix4 operator * (const Matrix4 &lhs, const Matrix4 &rhs)	{
+		_CPU_AND_GPU_CODE_ inline friend Matrix4 operator * (const Matrix4 &lhs, const T &rhs)	{ 
+			Matrix4 r;
+			for (int i = 0; i < 16; i++) r.m[i] = lhs.m[i] * rhs;
+			return r;
+		}
+
+		_CPU_AND_GPU_CODE_ inline friend Matrix4 operator / (const Matrix4 &lhs, const T &rhs)	{ 
+			Matrix4 r;
+			for (int i = 0; i < 16; i++) r.m[i] = lhs.m[i] / rhs;
+			return r;
+		}
+
+		_CPU_AND_GPU_CODE_ inline friend Matrix4 operator * (const Matrix4 &lhs, const Matrix4 &rhs)	{ 
 			Matrix4 r;
 			r.setZeros();
 			for (int x = 0; x < 4; x++) for (int y = 0; y < 4; y++) for (int k = 0; k < 4; k++)
@@ -145,16 +160,16 @@ namespace ORUtils {
 		_CPU_AND_GPU_CODE_ inline Matrix4 &operator -= (const Matrix4 &mat) { for (int i = 0; i < 16; ++i) this->m[i] -= mat.m[i]; return *this; }
 
 		_CPU_AND_GPU_CODE_ inline friend bool operator == (const Matrix4 &lhs, const Matrix4 &rhs) {
-			bool r = lhs[0] == rhs[0];
+			bool r = lhs.m[0] == rhs.m[0];
 			for (int i = 1; i < 16; i++)
-				r &= lhs[i] == rhs[i];
+				r &= lhs.m[i] == rhs.m[i];
 			return r;
 		}
 
 		_CPU_AND_GPU_CODE_ inline friend bool operator != (const Matrix4 &lhs, const Matrix4 &rhs) {
-			bool r = lhs[0] != rhs[0];
+			bool r = lhs.m[0] != rhs.m[0];
 			for (int i = 1; i < 16; i++)
-				r |= lhs[i] != rhs[i];
+				r |= lhs.m[i] != rhs.m[i];
 			return r;
 		}
 
@@ -220,6 +235,30 @@ namespace ORUtils {
 
 			out *= 1 / det;
 			return true;
+		}
+
+		_CPU_AND_GPU_CODE_ inline bool transpose(Matrix4 &out) const {
+            T tmp[16];
+            for (int i = 0; i < 4; i++) {
+                tmp[i]      = this->m[i * 4];
+                tmp[i + 4]  = this->m[i * 4 + 1];
+                tmp[i + 8]  = this->m[i * 4 + 2];
+                tmp[i + 12] = this->m[i * 4 + 3];
+            }
+            memcpy(out.m, tmp, sizeof(T)*16);
+            return true;
+		}
+
+        _CPU_AND_GPU_CODE_ inline Matrix4 transpose() const {
+            Matrix4 out;
+            this->transpose(out);
+            return out;
+        }
+
+        _CPU_AND_GPU_CODE_ inline Matrix4 inv() const {
+		    Matrix4 out;
+		    this->inv(out);
+		    return out;
 		}
 
 		friend std::ostream& operator<<(std::ostream& os, const Matrix4<T>& dt) {
@@ -295,7 +334,7 @@ namespace ORUtils {
 			return r;
 		}
 
-		_CPU_AND_GPU_CODE_ inline Matrix3& operator *(const T &r) const {
+		_CPU_AND_GPU_CODE_ inline Matrix3 operator *(const T &r) const {
 			Matrix3 res(this->m);
 			return res *= r;
 		}
@@ -315,16 +354,16 @@ namespace ORUtils {
 		_CPU_AND_GPU_CODE_ inline Matrix3& operator -= (const Matrix3 &mat) { for (int i = 0; i < 9; ++i) this->m[i] -= mat.m[i]; return *this; }
 
 		_CPU_AND_GPU_CODE_ inline friend bool operator == (const Matrix3 &lhs, const Matrix3 &rhs) {
-			bool r = lhs[0] == rhs[0];
+			bool r = lhs.m[0] == rhs.m[0];
 			for (int i = 1; i < 9; i++)
-				r &= lhs[i] == rhs[i];
+				r &= lhs.m[i] == rhs.m[i];
 			return r;
 		}
 
 		_CPU_AND_GPU_CODE_ inline friend bool operator != (const Matrix3 &lhs, const Matrix3 &rhs) {
-			bool r = lhs[0] != rhs[0];
+			bool r = lhs.m[0] != rhs.m[0];
 			for (int i = 1; i < 9; i++)
-				r |= lhs[i] != rhs[i];
+				r |= lhs.m[i] != rhs.m[i];
 			return r;
 		}
 
@@ -417,16 +456,16 @@ namespace ORUtils {
 		_CPU_AND_GPU_CODE_ inline MatrixSQX<T, s> &operator -= (const MatrixSQX<T, s> &mat) { for (int i = 0; i < s*s; ++i) this->m[i] -= mat.m[i]; return *this; }
 
 		_CPU_AND_GPU_CODE_ inline friend bool operator == (const MatrixSQX<T, s> &lhs, const MatrixSQX<T, s> &rhs) {
-			bool r = lhs[0] == rhs[0];
+			bool r = lhs.m[0] == rhs.m[0];
 			for (int i = 1; i < s*s; i++)
-				r &= lhs[i] == rhs[i];
+				r &= lhs.m[i] == rhs.m[i];
 			return r;
 		}
 
 		_CPU_AND_GPU_CODE_ inline friend bool operator != (const MatrixSQX<T, s> &lhs, const MatrixSQX<T, s> &rhs) {
-			bool r = lhs[0] != rhs[0];
+			bool r = lhs.m[0] != rhs.m[0];
 			for (int i = 1; i < s*s; i++)
-				r |= lhs[i] != rhs[i];
+				r |= lhs.m[i] != rhs.m[i];
 			return r;
 		}
 
@@ -440,5 +479,16 @@ namespace ORUtils {
 		}
 	};
 
+	template <class T>
+    _CPU_AND_GPU_CODE_ inline Vector3<T> transform(Matrix3<T> transMat, Vector3<T> pointIn)
+    {
+        return make_float3(transMat[0] * pointIn.x + transMat[1] * pointIn.y + transMat[2] * pointIn.z,
+                           transMat[4] * pointIn.x + transMat[5] * pointIn.y + transMat[6] * pointIn.z,
+                           transMat[8] * pointIn.x + transMat[9] * pointIn.y + transMat[10] * pointIn.z) +
+               make_float3(transMat[3], transMat[7], transMat[11]);
+    }
 
-};
+
+
+}
+

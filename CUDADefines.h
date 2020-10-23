@@ -1,4 +1,4 @@
-// Copyright 2014-2015 Isis Innovation Limited and the authors of InfiniTAM
+// Copyright 2014-2017 Oxford University Innovation Limited and the authors of InfiniTAM
 
 #pragma once
 
@@ -31,8 +31,10 @@ namespace ORUtils {
 inline void __cudaSafeCall( cudaError err, const char *file, const int line )
 {
     if( cudaSuccess != err) {
-		printf("%s(%i) : cudaSafeCall() Runtime API error : %s.\n",
+        char buffer [256];
+        sprintf(buffer,"%s(%i) : cudaSafeCall() Runtime API error : %s.\n",
                 file, line, cudaGetErrorString(err) );
+		throw std::runtime_error(buffer);
         exit(-1);
     }
 }
@@ -41,5 +43,14 @@ inline void __cudaSafeCall( cudaError err, const char *file, const int line )
 
 #endif
 
+#ifndef ORcudaKernelCheck
+
+// For normal operation
+#define ORcudaKernelCheck
+
+// For debugging purposes
+//#define ORcudaKernelCheck { cudaDeviceSynchronize(); ORUtils::__cudaSafeCall(cudaPeekAtLastError(), __FILE__, __LINE__); }
+
 #endif
 
+#endif

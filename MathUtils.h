@@ -1,4 +1,4 @@
-// Copyright 2014-2015 Isis Innovation Limited and the authors of InfiniTAM
+// Copyright 2014-2017 Oxford University Innovation Limited and the authors of InfiniTAM
 
 #pragma once
 
@@ -30,10 +30,6 @@
 #define DEGTORAD float(0.017453292519943295769236907684886)
 #endif
 
-#ifndef MY_INF
-#define MY_INF 0x7f800000
-#endif
-
 #ifndef __METALC__
 
 inline bool portable_finite(float a)
@@ -53,5 +49,8 @@ inline void matmul(const float *A, const float *b, float *x, int numRows, int nu
 		x[r] = res;
 	}
 }
+
+
+
 
 #endif

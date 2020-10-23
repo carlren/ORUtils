@@ -1,9 +1,9 @@
-// Copyright 2014-2015 Isis Innovation Limited and the authors of InfiniTAM
+// Copyright 2014-2017 Oxford University Innovation Limited and the authors of InfiniTAM
 
 #pragma once
 
-
 #include "MemoryBlock.h"
+#include "Vector.h"
 
 #ifndef __METALC__
 
@@ -13,9 +13,32 @@ namespace ORUtils
 	Represents images, templated on the pixel type
 	*/
 	template <typename T>
-	class Image : public MemoryBlock < T >
+	class Image : private MemoryBlock<T>
 	{
 	public:
+		/** Expose public MemoryBlock<T> member variables. */
+		using MemoryBlock<T>::dataSize;
+		using MemoryBlock<T>::hasCPU;
+        using MemoryBlock<T>::hasCUDA;
+
+		/** Expose public MemoryBlock<T> datatypes. */
+		using typename MemoryBlock<T>::MemoryCopyDirection;
+		using MemoryBlock<T>::CPU_TO_CPU;
+		using MemoryBlock<T>::CPU_TO_CUDA;
+		using MemoryBlock<T>::CUDA_TO_CPU;
+		using MemoryBlock<T>::CUDA_TO_CUDA;
+
+		/** Expose public MemoryBlock<T> member functions. */
+		using MemoryBlock<T>::Clear;
+		using MemoryBlock<T>::GetData;
+		using MemoryBlock<T>::GetDataConst;
+		using MemoryBlock<T>::GetElement;
+#ifdef COMPILE_WITH_METAL
+		using MemoryBlock<T>::GetMetalBuffer();
+#endif
+		using MemoryBlock<T>::UpdateDeviceFromHost;
+		using MemoryBlock<T>::UpdateHostFromDevice;
+
 		/** Size of the image in pixels. */
 		Vector2<int> noDims;
 
@@ -40,27 +63,45 @@ namespace ORUtils
 			this->noDims = noDims;
 		}
 
-		/** Resize an image, loosing all old image data.
+		/** Resize an image, losing all old image data.
 		Essentially any previously allocated data is
 		released, new memory is allocated.
 		*/
-		void ChangeDims(Vector2<int> newDims)
+		void ChangeDims(Vector2<int> newDims, bool forceReallocation = true)
 		{
-			if (newDims != noDims)
-			{
-				this->noDims = newDims;
+			MemoryBlock<T>::Resize(newDims.x * newDims.y, forceReallocation);
+			noDims = newDims;
+		}
 
-				bool allocate_CPU = this->isAllocated_CPU;
-				bool allocate_CUDA = this->isAllocated_CUDA;
-				bool metalCompatible = this->isMetalCompatible;
+		void SetFrom(const Image<T> *source, MemoryCopyDirection memoryCopyDirection, void *stream = nullptr)
+		{
+			ChangeDims(source->noDims);
+			MemoryBlock<T>::SetFrom(source, memoryCopyDirection, stream);
+		}
 
-				this->Free();
-				this->Allocate(newDims.x * newDims.y, allocate_CPU, allocate_CUDA, metalCompatible);
-			}
+//        void SetTo(T value, MemoryCopyDirection memoryCopyDirection)
+//        {
+//            MemoryBlock<T>::SetTo(value, memoryCopyDirection);
+//        }
+
+		void Swap(Image<T>& rhs)
+		{
+			MemoryBlock<T>::Swap(rhs);
+			std::swap(this->noDims, rhs.noDims);
 		}
 
 		// Suppress the default copy constructor and assignment operator
-		Image(const Image&);
+        Image(const Image& image)
+        : MemoryBlock<T>(image.noDims.x * image.noDims.y, image.isAllocated_CPU,image.isAllocated_CUDA, image.isMetalCompatible){
+            this->noDims = image.noDims;
+            if(this->isAllocated_CPU)
+                this->SetFrom(&image, CPU_TO_CPU);
+            if(this->isAllocated_CUDA)
+                this->SetFrom(&image, CUDA_TO_CUDA);
+#ifndef NDEBUG
+            MemoryBlock<T>::SyncronizeTimeStamp();
+#endif
+        };
 		Image& operator=(const Image&);
 	};
 }
