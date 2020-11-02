@@ -72,6 +72,10 @@ namespace ORUtils {
 		_CPU_AND_GPU_CODE_ Vector2(const Vector3_<T> &u)  { this->x = u.x; this->y = u.y; }
 		_CPU_AND_GPU_CODE_ Vector2(const Vector4_<T> &u)  { this->x = u.x; this->y = u.y; }
 
+        _CPU_AND_GPU_CODE_ T Volume() const {
+		    return this->x *this->y;
+		}
+
 		_CPU_AND_GPU_CODE_ inline Vector2<int> toInt() const {
 			return {(int)ROUND(this->x), (int)ROUND(this->y)};
 		}
@@ -96,6 +100,11 @@ namespace ORUtils {
 		_CPU_AND_GPU_CODE_ inline Vector2<float> toFloat() const {
 			return {(float)this->x, (float)this->y};
 		}
+
+        template<typename T2>
+        _CPU_AND_GPU_CODE_ inline Vector2<T2> cast() const {
+            return Vector2<T2>((T2)(this->x),(T2)(this->y));
+        }
 
 		_CPU_AND_GPU_CODE_ const T *getValues() const { return this->v; }
 		_CPU_AND_GPU_CODE_ Vector2<T> &setValues(const T *rhs) { this->x = rhs[0]; this->y = rhs[1]; return *this; }
@@ -232,8 +241,17 @@ namespace ORUtils {
 		_CPU_AND_GPU_CODE_ explicit Vector3(const Vector4_<T> &u)	{ this->x = u.x; this->y = u.y; this->z = u.z; }
 		_CPU_AND_GPU_CODE_ explicit Vector3(const Vector2_<T> &u, T v0 = T(0)) { this->x = u.x; this->y = u.y; this->z = v0; }
 
+        _CPU_AND_GPU_CODE_ inline T Volume() const {
+            return this->x*this->y*this->z;
+        }
+
 		_CPU_AND_GPU_CODE_ inline Vector3<int> toIntRound() const {
 			return Vector3<int>((int)ROUND(this->x), (int)ROUND(this->y), (int)ROUND(this->z));
+		}
+
+		template<typename T2>
+        _CPU_AND_GPU_CODE_ inline Vector3<T2> cast() const {
+		    return Vector3<T2>((T2)(this->x),(T2)(this->y),(T2)(this->z));
 		}
 
 		_CPU_AND_GPU_CODE_ inline Vector3<int> toInt() const {
