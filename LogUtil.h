@@ -76,6 +76,21 @@ TOCK(name); \
 printf("[Time] %s: %f\n", name, getWatch.getTimings()[name]); \
 } while(false)
 
+#define CTICK_RESET(name) \
+do{\
+getWatch.reset(name); \
+} while (false)
+
+#define CTICK(name) \
+do {\
+getWatch.start(name,getWatch.getCurrentSystemTime()); \
+} while (false)
+
+#define CTOCK(name) \
+do {\
+getWatch.clip(name,getWatch.getCurrentSystemTime()); \
+} while (false)
+
 #define TOCK_IP(name, value) do{\
 TOCK(name);\
     double time = getWatch.getTimings()[name]; \
@@ -130,13 +145,13 @@ TOCK_P(name); \
             return time;
         }
         
-        void tick(std::string name, unsigned long long int start)
+        void tick(const std::string &name, unsigned long long int start)
         {
             tickTimings[name] = start;
             timings[name]=0;
         }
         
-        void tock(std::string name, unsigned long long int end)
+        void tock(const std::string &name, unsigned long long int end)
         {
             float duration = (float)(end - tickTimings[name]) / 1000.0f;
             
@@ -147,8 +162,26 @@ TOCK_P(name); \
             }
         }
 
-        std::map<std::string, double> &getTimings(){return timings;}
+        void reset(const std::string &name){
+            mClipTimes[name] = {0.f,0};
+        }
+        void start(const std::string &name, unsigned long long int start){;
+            tickTimings[name] = start;
+        }
+        void clip(const std::string &name, unsigned long long int end){
+            float duration = (float)(end - tickTimings[name]) / 1000.0f;
+            if(duration > 0)
+            {
+                if(mClipTimes.find(name) == mClipTimes.end())
+                    mClipTimes[name] = {0,0};
+                mClipTimes[name].first += duration;
+                mClipTimes[name].second += 1;
+                updateStates[name] = true;
+            }
+        }
 
+        std::map<std::string, double> &getTimings(){return timings;}
+        std::map<std::string, std::pair<float,int>> &getCTimings(){return mClipTimes;}
         std::map<std::string, std::atomic_bool> &getUpdateStats(){return updateStates;}
 
         bool updated (std::string name) {return updateStates[name];}
@@ -156,6 +189,7 @@ TOCK_P(name); \
         std::map<std::string, double> timings;
         std::map<std::string, std::atomic_bool> updateStates;
         std::map<std::string, unsigned long long int> tickTimings;
+        std::map<std::string, std::pair<float,int>> mClipTimes;
     };
     
     // Singleton config class
