@@ -10,10 +10,10 @@
 #include <iostream>
 #include "Logging.h"
 
-#define packageName(var, s) SCSLAM::IO::PACKAGE_VAR(#var, var, s)
+#define packageName(var, s) SCFUSION::IO::PACKAGE_VAR(#var, var, s)
 #define packageName2(var,name,s) SCSLAM::IO::PACKAGE_VAR(name, var, s)
 
-namespace SCSLAM{
+namespace SCFUSION{
     namespace IO {
         template<typename T>
         struct PACKAGE {

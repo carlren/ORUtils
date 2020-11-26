@@ -3,7 +3,7 @@
 #include "Vector.h"
 #include <math.h>
 
-namespace SCSLAM {
+namespace SCFUSION {
     _CPU_AND_GPU_CODE_ inline void HSVtoRGB(float& fR, float& fG, float& fB, float& fH, float& fS, float& fV) {
         float fC = fV * fS; // Chroma
         float fHPrime = fmod(fH / 60.f, 6.f);

@@ -1,6 +1,6 @@
 #include "FileIO.h"
 
-namespace SCSLAM{
+namespace SCFUSION{
     namespace IO {
         template <> void FileIO::assignValue(bool *value, const std::vector<std::string> &map) {
             for (size_t i = 0; i < map.size(); ++i)

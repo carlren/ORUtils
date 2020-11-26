@@ -12,9 +12,8 @@ SET(targetname ORUtils)
 # Specify the libraries to use #
 ################################
 
-INCLUDE(${PROJECT_SOURCE_DIR}/cmake/UseCUDA.cmake)
-INCLUDE(${PROJECT_SOURCE_DIR}/cmake/UseOpenMP.cmake)
-INCLUDE(${PROJECT_SOURCE_DIR}/cmake/UsePNG.cmake)
+INCLUDE(UseCUDA)
+INCLUDE(UseOpenMP)
 
 #############################
 # Specify the project files #
@@ -41,8 +40,7 @@ SOURCE_GROUP("" FILES ${sources} ${headers})
 # Specify the target and where to put it #
 ##########################################
 
-INCLUDE(${PROJECT_SOURCE_DIR}/cmake/SetCUDALibTarget.cmake)
+INCLUDE(SetCUDALibTarget)
 
 set_target_properties(${targetname} PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(${targetname} PROPERTIES CXX_STANDARD 11)
-#target_include_directories(${targetname} PUBLIC ./include PUBLIC .)
