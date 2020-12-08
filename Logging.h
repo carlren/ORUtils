@@ -39,6 +39,23 @@ namespace ORUtils {
 
             const std::string str() const { return stream_->str(); }
 
+            static std::string GetFileFunctionLine(const char *f, const char *func, int l){
+                std::string path(f);
+                std::string base_filename = path.substr(path.find_last_of("/\\") + 1);
+                std::stringstream s;
+                s << "["<<base_filename << ":"<<func<<":"<<l<<"]";
+                return s.str();
+            }
+            static std::string GetFileFunction(const char *f, const char *func){
+                std::stringstream s;
+                s << "["<<f << ":"<<func<<"]";
+                return s.str();
+            }
+            static std::string GetFunctionLine(const char *func, int l){
+                std::stringstream s;
+                s << "["<<func << ":"<<l<<"]";
+                return s.str();
+            }
         private:
             const std::unique_ptr<std::stringstream> stream_;
         };
@@ -75,6 +92,7 @@ namespace ORUtils {
             }
 
         public:
+
             /// Store all log data.
             /**
              * A record has the severity of logging, the position where the file and line
@@ -268,6 +286,9 @@ namespace ORUtils {
             ORUtils::logging::Logger::Record(SCLOG_SEVERITY(severity), __FILE__, __FUNCTION__, __LINE__) += \
             ORUtils::logging::Message()
 
+#define GETFFL ORUtils::logging::Message::GetFileFunctionLine( __FILE__, __FUNCTION__, __LINE__)
+#define GETFF ORUtils::logging::Message::GetFileFunction( __FILE__, __FUNCTION__)
+#define GETFL ORUtils::logging::Message::GetFunctionLine( __FUNCTION__, __LINE__)
 /**
  * Turn on the log and set the severity level.
  *
