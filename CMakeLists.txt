@@ -33,7 +33,6 @@ ${header}
 #############################
 # Specify the source groups #in
 #############################
-
 SOURCE_GROUP("" FILES ${sources} ${headers})
 
 ##########################################
