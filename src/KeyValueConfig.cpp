@@ -1,6 +1,6 @@
 // Copyright 2014-2017 Oxford University Innovation Limited and the authors of InfiniTAM
 
-#include "KeyValueConfig.h"
+#include "../include/ORUtils/KeyValueConfig.h"
 
 #include <stdio.h>
 #include <stdlib.h>

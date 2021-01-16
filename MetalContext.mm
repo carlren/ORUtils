@@ -1,6 +1,6 @@
 // Copyright 2014 Isis Innovation Limited and the authors of InfiniTAM
 
-#import "MetalContext.h"
+#import "include/ORUtils/MetalContext.h"
 #import <Metal/Metal.h>
 
 @implementation MetalContext

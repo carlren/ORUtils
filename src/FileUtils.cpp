@@ -1,6 +1,6 @@
 // Copyright 2014-2017 Oxford University Innovation Limited and the authors of InfiniTAM484
 
-#include "FileUtils.h"
+#include "../include/ORUtils/FileUtils.h"
 
 #include <stdio.h>
 #include <fstream>

@@ -39,8 +39,7 @@ SOURCE_GROUP("" FILES ${sources} ${headers})
 ##########################################
 # Specify the target and where to put it #
 ##########################################
-
-INCLUDE(SetCUDALibTarget)
-
+ADD_LIBRARY(${targetname} ${sources} ${headers})
+target_include_directories(${targetname} PUBLIC ./include)
 set_target_properties(${targetname} PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(${targetname} PROPERTIES CXX_STANDARD 11)
