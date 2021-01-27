@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 #include <atomic>
 #include <iostream>
@@ -54,6 +55,8 @@ fprintf(stderr, x,  ##__VA_ARGS__); } while (0)
 /// TIMER
 //////
 #define getWatch Monitoring::getInstance().watch
+#define getMonitor Monitoring::getInstance()
+
 
 #ifndef DISABLE_STOPWATCH
     // 開始計時
@@ -75,7 +78,10 @@ do {\
 TOCK(name); \
 printf("[Time] %s: %f\n", name, getWatch.getTimings()[name]); \
 } while(false)
-
+/**
+ * CTICK: start without reset time
+ * CTOCK_ACC: accumulate times
+ */
 #define CTICK_RESET(name) \
 do{\
 getWatch.reset(name); \
@@ -84,6 +90,11 @@ getWatch.reset(name); \
 #define CTICK(name) \
 do {\
 getWatch.start(name,getWatch.getCurrentSystemTime()); \
+} while (false)
+
+#define CTOCK_ACC(name) \
+do {\
+getWatch.tock_accumulate(name,getWatch.getCurrentSystemTime()); \
 } while (false)
 
 #define CTOCK(name) \
@@ -180,6 +191,17 @@ TOCK_P(name); \
             }
         }
 
+        void tock_accumulate(const std::string &name, unsigned long long int end) {
+            float duration = (float)(end - tickTimings[name]) / 1000.0f;
+            if(duration > 0)
+            {
+                if(timings.find(name) == timings.end())
+                    timings[name]=0;
+                timings[name] += duration;
+                updateStates[name] = true;
+            }
+        }
+
         std::map<std::string, double> &getTimings(){return timings;}
         std::map<std::string, std::pair<float,int>> &getCTimings(){return mClipTimes;}
         std::map<std::string, std::atomic_bool> &getUpdateStats(){return updateStates;}
@@ -190,6 +212,15 @@ TOCK_P(name); \
         std::map<std::string, std::atomic_bool> updateStates;
         std::map<std::string, unsigned long long int> tickTimings;
         std::map<std::string, std::pair<float,int>> mClipTimes;
+    };
+
+
+    template<typename IndexT, typename ValueT>
+    struct LogEntry {
+        IndexT x;
+        ValueT y;
+        LogEntry()=default;
+        LogEntry(IndexT x_, ValueT y_):x(std::move(x_)),y(std::move(y_)){}
     };
     
     // Singleton config class
@@ -203,10 +234,16 @@ TOCK_P(name); \
             return ConfigGUIInstance;
         }
         Monitoring(){};
-        
+
+        void Log(const std::string &name, unsigned int stamp, const std::string &value) {
+            if(log.find(name) == log.end())
+                log[name].reserve(2<<16); // reserve 65536
+            log[name].emplace_back(stamp,value);
+        }
+
     public:
         Watch watch;
-        std::map<std::string, std::vector<std::string> > log;
+        std::map<std::string, std::vector<LogEntry<unsigned int, std::string>> > log;
     };
 //}
 
