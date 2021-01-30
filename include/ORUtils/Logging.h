@@ -70,6 +70,61 @@ namespace ORUtils {
             VERBOSE = 4
         };
 
+        struct Log {
+            std::mutex m_mutex;
+            std::vector<char> buffer;
+            std::vector<int> LineOffsets;
+            Log(){
+                Clear();
+            }
+
+            void AddLog(const std::string &log) {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                int old_size = buffer.size();
+                buffer.insert(buffer.end(), log.begin(),log.end());
+                for (int new_size = buffer.size(); old_size < new_size; old_size++)
+                    if (buffer[old_size-1] == '\n')
+                        LineOffsets.push_back(old_size);
+            }
+
+            void AddLog(const std::vector<char> &log) {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                int old_size = buffer.size();
+                buffer.insert(buffer.end(), log.begin(),log.end());
+                for (int new_size = buffer.size(); old_size < new_size; old_size++)
+                    if (buffer[old_size-1] == '\n')
+                        LineOffsets.push_back(old_size);
+            }
+
+            void    Clear()
+            {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                buffer.clear();
+                LineOffsets.clear();
+                LineOffsets.push_back(0);
+            }
+
+            void Print() {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                std::string s(buffer.begin(),buffer.end());
+                printf("%s\n",s.c_str());
+            }
+
+            void Append(std::vector<char> &out, size_t start){
+                std::lock_guard<std::mutex> lock(m_mutex);
+                out.insert(out.end(),buffer.begin()+start, buffer.end());
+            }
+
+            size_t size() {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                return buffer.size();
+            }
+
+//            size_t GetStartEnd(){
+//
+//            }
+        };
+
 /**
  * A Logger is a center object of the whole logging system.
  *
@@ -81,7 +136,7 @@ namespace ORUtils {
         class Logger {
         private:
             Logger()
-                    : severity_level_(INFO), mbLogToFile(false) {
+                    : severity_level_(INFO), mbLogToFile(false), mbLogToLogBuffer(false), mbLogToCout(true) {
                 char buffer[1024];
                 std::time_t tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
                 std::tm *tm = localtime(&tt);
@@ -101,8 +156,8 @@ namespace ORUtils {
             struct Record {
                 Record(const Severity &s, const char *f, const char *func, int l)
                         : severity(s), filename(f), functionname(func), line(l) {
-                    size_t t1 = filename.find_last_of("\\");
-                    size_t t2 = filename.find_last_of("/");
+                    size_t t1 = filename.find_last_of('\\');
+                    size_t t2 = filename.find_last_of('/');
                     if (t1 == std::string::npos) t1 = 0;
                     if (t2 == std::string::npos) t2 = 0;
                     if (t1 != 0 || t2 != 0)
@@ -138,9 +193,9 @@ namespace ORUtils {
                 std::chrono::time_point<std::chrono::system_clock> time;
 
             private:
-                Record(const Record &);
+                Record(const Record &) = delete;
 
-                void operator=(const Record &);
+                void operator=(const Record &) = delete;
             };
 
             /**
@@ -163,7 +218,6 @@ namespace ORUtils {
                 ss.clear();
                 // Print severity.
                 ss << SeverityToString(record.severity);
-//        printf("%s", SeverityToString(record.severity));
 
                 // Print date time.
                 std::time_t tt = std::chrono::system_clock::to_time_t(record.time);
@@ -174,12 +228,12 @@ namespace ORUtils {
                         tm->tm_hour, tm->tm_min, tm->tm_sec);
                 ss << buffer;
 
+                // Print milliseconds.
                 auto since_epoch = record.time.time_since_epoch();
                 std::chrono::seconds s =
                         std::chrono::duration_cast<std::chrono::seconds>(since_epoch);
                 since_epoch -= s;
 
-                // Print milliseconds.
                 typedef std::chrono::milliseconds Milliseconds;
                 Milliseconds milliseconds =
                         std::chrono::duration_cast<Milliseconds>(since_epoch);
@@ -199,7 +253,10 @@ namespace ORUtils {
                         (*f) << ss.str();
                         f->close();
                     }
-                    printf("%s", ss.str().c_str());
+                    if(mbLogToCout)
+                        printf("%s", ss.str().c_str());
+                    if(mbLogToFile)
+                        mLogBuffer.AddLog(ss.str());
                 }
                 if (record.severity == Severity::ERROR) throw std::runtime_error(ss.str());
                 fflush(stdout);
@@ -213,17 +270,30 @@ namespace ORUtils {
             }
 
             void set_severity_level(const Severity &severity_level) {
+                std::lock_guard<std::mutex> guard(mutex_);
                 severity_level_ = severity_level;
             }
 
             void set_log_to_file(bool option){
+                std::lock_guard<std::mutex> guard(mutex_);
                 mbLogToFile = option;
+            }
+
+            void set_log_to_cout(bool option) {
+                std::lock_guard<std::mutex> guard(mutex_);
+                mbLogToCout = option;
+            }
+
+            void set_log_to_buffer(bool option) {
+                std::lock_guard<std::mutex> guard(mutex_);
+                mbLogToLogBuffer = option;
             }
 
             const Severity &severity_level() const {
                 return severity_level_;
             }
 
+            Log *GetLogBuffer(){return &mLogBuffer;}
         private:
             /**
              * Convert serverity to string.
@@ -257,9 +327,15 @@ namespace ORUtils {
 
             bool mbLogToFile;
 
+            bool mbLogToLogBuffer;
+
+            bool mbLogToCout;
+
             std::unique_ptr<std::fstream> f;
 
             std::string msLogName;
+
+            Log mLogBuffer;
 
             Logger(const Logger &);
 
@@ -300,5 +376,10 @@ namespace ORUtils {
     ORUtils::logging::Logger::GetInstance()->set_severity_level(SCLOG_SEVERITY(severity))
 #define SCLOG_TO_FILE(option) \
     ORUtils::logging::Logger::GetInstance()->set_log_to_file(option)
+#define SCLOG_TO_COUT(option) \
+    ORUtils::logging::Logger::GetInstance()->set_log_to_cout(option)
+#define SCLOG_TO_BUFFER(option) \
+    ORUtils::logging::Logger::GetInstance()->set_log_to_file(option)
 
+#define SCLOGBUFFER ORUtils::logging::Logger::GetInstance()->GetLogBuffer()
 #endif // SCLOGGING_H_
