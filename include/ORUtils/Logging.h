@@ -255,7 +255,7 @@ namespace ORUtils {
                     }
                     if(mbLogToCout)
                         printf("%s", ss.str().c_str());
-                    if(mbLogToFile)
+                    if(mbLogToLogBuffer)
                         mLogBuffer.AddLog(ss.str());
                 }
                 if (record.severity == Severity::ERROR) throw std::runtime_error(ss.str());
@@ -379,7 +379,7 @@ namespace ORUtils {
 #define SCLOG_TO_COUT(option) \
     ORUtils::logging::Logger::GetInstance()->set_log_to_cout(option)
 #define SCLOG_TO_BUFFER(option) \
-    ORUtils::logging::Logger::GetInstance()->set_log_to_file(option)
+    ORUtils::logging::Logger::GetInstance()->set_log_to_buffer(option)
 
 #define SCLOGBUFFER ORUtils::logging::Logger::GetInstance()->GetLogBuffer()
 #endif // SCLOGGING_H_
