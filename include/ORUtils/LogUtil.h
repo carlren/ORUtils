@@ -155,14 +155,14 @@ TOCK_P(name); \
             unsigned long long int time = (unsigned long long int)(tv.tv_sec * 1000000 + tv.tv_usec);
             return time;
         }
-        
-        void tick(const std::string &name, unsigned long long int start)
+
+        inline void tick(const std::string &name, unsigned long long int start)
         {
             tickTimings[name] = start;
             timings[name]=0;
         }
-        
-        void tock(const std::string &name, unsigned long long int end)
+
+        inline void tock(const std::string &name, unsigned long long int end)
         {
             float duration = (float)(end - tickTimings[name]) / 1000.0f;
             
@@ -176,7 +176,7 @@ TOCK_P(name); \
         void reset(const std::string &name){
             mClipTimes[name] = {0.f,0};
         }
-        void start(const std::string &name, unsigned long long int start){;
+        inline void start(const std::string &name, unsigned long long int start){;
             tickTimings[name] = start;
         }
         void clip(const std::string &name, unsigned long long int end){
@@ -191,7 +191,7 @@ TOCK_P(name); \
             }
         }
 
-        void tock_accumulate(const std::string &name, unsigned long long int end) {
+        inline void tock_accumulate(const std::string &name, unsigned long long int end) {
             float duration = (float)(end - tickTimings[name]) / 1000.0f;
             if(duration > 0)
             {
